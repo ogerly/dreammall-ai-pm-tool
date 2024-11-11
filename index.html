@@ -460,7 +460,17 @@
             // Hier würde die Nachricht an den Chat-Service gesendet werden
             this.chatInput = '';
           }
-        }
+        },
+        methods: {
+  async fetchProjects() {
+    try {
+      const response = await fetch('http://localhost:3000/projects');
+      this.projects = await response.json();
+    } catch (error) {
+      console.error('Fehler beim Abrufen der Projekte:', error);
+    }
+  },
+}
       }
     });
   </script>
