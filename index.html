@@ -111,6 +111,155 @@
             </v-col>
           </v-row>
 
+
+          <!-- Fügen Sie nach dem "Main Sections" Bereich und vor der Projekteinführung den neuen Kalenderbereich ein -->
+          
+<!-- Kalenderbereich -->
+<v-row>
+  <v-col cols="12" md="8">
+    <v-card class="custom-card">
+      <v-card-title>Projektkalender</v-card-title>
+      <v-card-text>
+        <v-row>
+          <v-col cols="12" md="8">
+            <v-date-picker
+              v-model="selectedDate"
+              :events="calendarEvents"
+              event-color="primary"
+              full-width
+              @click:date="handleDateClick"
+            ></v-date-picker>
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-list>
+              <v-subheader>Termine am {{ formatDate(selectedDate) }}</v-subheader>
+              <v-list-item
+                v-for="(event, index) in selectedDateEvents"
+                :key="index"
+              >
+                <v-list-item-content>
+                  <v-list-item-title>{{ event.title }}</v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ event.time }} - {{ event.type }}
+                  </v-list-item-subtitle>
+                </v-list-item-content>
+                <v-list-item-action>
+                  <v-chip
+                    :color="getEventTypeColor(event.type)"
+                    small
+                  >
+                    {{ event.type }}
+                  </v-chip>
+                </v-list-item-action>
+              </v-list-item>
+            </v-list>
+          </v-col>
+        </v-row>
+      </v-card-text>
+      <v-card-actions>
+        <v-btn
+          color="primary"
+          @click="showAddEventDialog = true"
+        >
+          Termin hinzufügen
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-col>
+
+  <!-- Kommende Termine -->
+  <v-col cols="12" md="4">
+    <v-card class="custom-card">
+      <v-card-title>Kommende Termine</v-card-title>
+      <v-card-text>
+        <v-list dense>
+          <v-list-item
+            v-for="(event, index) in upcomingEvents"
+            :key="index"
+          >
+            <v-list-item-content>
+              <v-list-item-title>{{ event.title }}</v-list-item-title>
+              <v-list-item-subtitle>
+                {{ formatDate(event.date) }} - {{ event.type }}
+              </v-list-item-subtitle>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+    </v-card>
+  </v-col>
+</v-row>
+
+<!-- Dialog für neue Termine -->
+<v-dialog
+  v-model="showAddEventDialog"
+  max-width="500px"
+>
+  <v-card>
+    <v-card-title>Neuen Termin hinzufügen</v-card-title>
+    <v-card-text>
+      <v-form @submit.prevent="addNewEvent">
+        <v-text-field
+          v-model="newEvent.title"
+          label="Titel"
+          required
+        ></v-text-field>
+        <v-menu
+          v-model="dateMenu"
+          :close-on-content-click="false"
+          :nudge-right="40"
+          transition="scale-transition"
+          offset-y
+          min-width="auto"
+        >
+          <template v-slot:activator="{ on, attrs }">
+            <v-text-field
+              v-model="newEvent.date"
+              label="Datum"
+              readonly
+              v-bind="attrs"
+              v-on="on"
+            ></v-text-field>
+          </template>
+          <v-date-picker
+            v-model="newEvent.date"
+            @input="dateMenu = false"
+          ></v-date-picker>
+        </v-menu>
+        <v-select
+          v-model="newEvent.type"
+          :items="eventTypes"
+          label="Typ"
+          required
+        ></v-select>
+        <v-text-field
+          v-model="newEvent.time"
+          label="Uhrzeit"
+          type="time"
+        ></v-text-field>
+      </v-form>
+    </v-card-text>
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-btn
+        color="grey darken-1"
+        text
+        @click="showAddEventDialog = false"
+      >
+        Abbrechen
+      </v-btn>
+      <v-btn
+        color="primary"
+        @click="addNewEvent"
+      >
+        Speichern
+      </v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+
+
+
           <v-row>
             <!-- Erweitertes Tagebuch -->
             <v-col cols="12" md="6">
@@ -288,192 +437,226 @@
     </v-app>
   </div>
 
-  <!-- Vue and Vuetify JS -->
-  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.6.14/dist/vuetify.js"></script>
+<!-- Vue and Vuetify JS -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@2.6.14/dist/vuetify.js"></script>
 
-  <script>
-    new Vue({
-      el: '#app',
-      vuetify: new Vuetify(),
-      data() {
-        return {
-          drawer: false,
-          aiInput: '',
+<!-- Application Script -->
+<script>
+  
+new Vue({
+    el: '#app',
+    vuetify: new Vuetify(),
+    data() {
+      return {
+        drawer: false,
+        aiInput: '',
+        date: new Date().toISOString().substr(0, 10),
+        menu: false,
+        diaryEntry: '',
+        selectedTags: [],
+        availableTags: ['Entwicklung', 'Meeting', 'Problem', 'Lösung', 'Idee', 'Fortschritt'],
+        chatInput: '',
+        selectedChatRoom: 'Allgemein',
+        chatRooms: ['Allgemein', 'Entwicklung', 'Marketing', 'Management'],
+        currentUser: 'Max Mustermann',
+        items: [
+          { title: 'Übersicht', icon: 'mdi-view-dashboard' },
+          { title: 'Aufgaben', icon: 'mdi-check-circle-outline' },
+          { title: 'Nachrichten', icon: 'mdi-message' },
+          { title: 'Einstellungen', icon: 'mdi-settings' }
+        ],
+        cards: [
+          { title: 'Abgeschlossene Aufgaben', subtitle: 'In Bearbeitung', value: 70 },
+          { title: 'Verbleibende Zeit', subtitle: 'Frist in 5 Tagen', value: 40 },
+          { title: 'Budgetauslastung', subtitle: 'Aktueller Stand', value: 50 },
+          { title: 'Teamauslastung', subtitle: 'Durchschnittlich', value: 80 }
+        ],
+        tasks: [
+          { title: 'Frontend-Entwicklung', assignee: 'Max Mustermann', dueDate: '2023-10-15', status: 'In Bearbeitung' },
+          { title: 'Backend-API', assignee: 'Anna Schmidt', dueDate: '2023-10-20', status: 'Geplant' },
+          { title: 'Datenbank-Design', assignee: 'Lisa Meyer', dueDate: '2023-10-10', status: 'Abgeschlossen' },
+        ],
+        aiMessages: [
+          { sender: 'Benutzer', content: 'Wie ist der aktuelle Projektstand?', time: 'Heute, 09:30' },
+          { sender: 'KI', content: 'Das Projekt liegt im Zeitplan. Die Frontend-Entwicklung ist zu 70% abgeschlossen, während die Backend-API-Entwicklung nächste Woche beginnen wird.', time: 'Heute, 09:31' },
+        ],
+        chatMessages: [
+          { sender: 'Anna Schmidt', content: 'Hat jemand die aktuellen Designentwürfe?', time: 'Heute, 10:15', room: 'Allgemein' },
+          { sender: 'Max Mustermann', content: 'Ich schicke sie dir gleich per E-Mail.', time: 'Heute, 10:17', room: 'Allgemein' },
+        ],
+        llmSteps: [
+          { title: 'Datenanalyse', description: 'LLMs sollen Projektdaten, Kommunikation und Tagebucheinträge analysieren, um Muster und Trends zu erkennen.' },
+          { title: 'Vorhersagen und Empfehlungen', description: 'Basierend auf historischen Daten und aktuellen Trends soll das LLM Vorhersagen und Empfehlungen für den Projektverlauf geben.' },
+          { title: 'Natürliche Sprachverarbeitung', description: 'Der geplante KI-Assistent soll LLMs nutzen, um natürliche Spracheingaben zu verstehen und kontextbezogene Antworten zu generieren.' },
+          { title: 'Automatisierte Berichterstellung', description: 'LLMs sollen bei der Erstellung aussagekräftiger Berichte helfen, indem sie relevante Informationen aus verschiedenen Projektquellen extrahieren und zusammenfassen.' },
+          { title: 'Kontinuierliches Lernen', description: 'Das System soll kontinuierlich mit neuen Projektdaten trainiert werden, um seine Leistung und Relevanz stetig zu verbessern.' }
+        ],
+        techStack: [
+          { title: 'Frontend', description: 'Vue.js mit Vuetify für eine reaktive und benutzerfreundliche Oberfläche' },
+          { title: 'Backend', description: 'Node.js mit Express.js für eine skalierbare Serverarchitektur' },
+          { title: 'Datenbank', description: 'MongoDB für flexible Datenspeicherung und -abfrage' },
+          { title: 'KI-Integration', description: 'Python-basierte Microservices für die Integration von LLMs und anderen KI-Funktionen' },
+          { title: 'API-Schnittstellen', description: 'RESTful APIs für die Kommunikation zwischen Frontend, Backend und KI-Services' }
+        ],
+        thirdPartyTools: [
+          { name: 'OpenAI GPT-3', purpose: 'Leistungsstarkes LLM für natürliche Sprachverarbeitung und Textgenerierung' },
+          { name: 'Jira', purpose: 'Aufgabenverwaltung und Projektverfolgung' },
+          { name: 'Slack', purpose: 'Team-Kommunikation und Integration von Benachrichtigungen' },
+          { name: 'GitHub', purpose: 'Versionskontrolle und kollaborative Softwareentwicklung' },
+          { name: 'Google Cloud Platform', purpose: 'Hosting, Skalierung und Datenspeicherung' }
+        ],
+        dashboardAreas: [
+          {
+            title: 'Projektübersicht',
+            description: 'Dieser Bereich soll einen schnellen Überblick über den aktuellen Projektstatus bieten.',
+            features: [
+              'Fortschrittsanzeigen für abgeschlossene Aufgaben',
+              'Anzeige der verbleibenden Zeit bis zur nächsten Deadline',
+              'Aktuelle Budgetauslastung',
+              'Teamauslastung'
+            ]
+          },
+          {
+            title: 'Aufgaben und Fortschritt',
+            description: 'Hier sollen alle aktuellen Aufgaben und deren Status angezeigt werden.',
+            features: [
+              'Liste aller Aufgaben mit Zuständigkeiten',
+              'Statusanzeige für jede Aufgabe',
+              'Möglichkeit zur Priorisierung von Aufgaben',
+              'Integration mit Jira für detailliertes Aufgabenmanagement'
+            ]
+          }
+        ],
+        // Kalender-bezogene Properties
+        selectedDate: new Date().toISOString().substr(0, 10),
+        showAddEventDialog: false,
+        dateMenu: false,
+        newEvent: {
+          title: '',
           date: new Date().toISOString().substr(0, 10),
-          menu: false,
-          diaryEntry: '',
-          selectedTags: [],
-          availableTags: ['Entwicklung', 'Meeting', 'Problem', 'Lösung', 'Idee', 'Fortschritt'],
-          chatInput: '',
-          selectedChatRoom: 'Allgemein',
-          chatRooms: ['Allgemein', 'Entwicklung', 'Marketing', 'Management'],
-          currentUser: 'Max Mustermann',
-          items: [
-            { title: 'Übersicht', icon: 'mdi-view-dashboard' },
-            { title: 'Aufgaben', icon: 'mdi-check-circle-outline' },
-            { title: 'Nachrichten', icon: 'mdi-message' },
-            { title: 'Einstellungen', icon: 'mdi-settings' }
-          ],
-          cards: [
-            { title: 'Abgeschlossene Aufgaben', subtitle: 'In Bearbeitung', value: 70 },
-            { title: 'Verbleibende Zeit', subtitle: 'Frist in 5 Tagen', value: 40 },
-            { title: 'Budgetauslastung', subtitle: 'Aktueller Stand', value: 50 },
-            { title: 'Teamauslastung', subtitle: 'Durchschnittlich', value: 80 }
-          ],
-          tasks: [
-            { title: 'Frontend-Entwicklung', assignee: 'Max Mustermann', dueDate: '2023-10-15', status: 'In Bearbeitung' },
-            { title: 'Backend-API', assignee: 'Anna Schmidt', dueDate: '2023-10-20', status: 'Geplant' },
-            { title: 'Datenbank-Design', assignee: 'Lisa Meyer', dueDate: '2023-10-10', status: 'Abgeschlossen' },
-          ],
-          aiMessages: [
-            { sender: 'Benutzer', content: 'Wie ist der aktuelle Projektstand?', time: 'Heute, 09:30' },
-            { sender: 'KI', content: 'Das Projekt liegt im Zeitplan. Die Frontend-Entwicklung ist zu 70% abgeschlossen, während die Backend-API-Entwicklung nächste Woche beginnen wird.', time: 'Heute, 09:31' },
-          ],
-          chatMessages: [
-            { sender: 'Anna Schmidt', content: 'Hat jemand die aktuellen Designentwürfe?', time: 'Heute, 10:15', room: 'Allgemein' },
-            { sender: 'Max Mustermann', content: 'Ich schicke sie dir gleich per E-Mail.', time: 'Heute, 10:17', room: 'Allgemein' },
-          ],
-          llmSteps: [
-            { title: 'Datenanalyse', description: 'LLMs sollen Projektdaten, Kommunikation und Tagebucheinträge analysieren, um Muster und Trends zu erkennen.' },
-            { title: 'Vorhersagen und Empfehlungen', description: 'Basierend auf historischen Daten und aktuellen Trends soll das LLM Vorhersagen und Empfehlungen für den Projektverlauf geben.' },
-            { title: 'Natürliche Sprachverarbeitung', description: 'Der geplante KI-Assistent soll LLMs nutzen, um natürliche Spracheingaben zu verstehen und kontextbezogene Antworten zu generieren.' },
-            { title: 'Automatisierte Berichterstellung', description: 'LLMs sollen bei der Erstellung aussagekräftiger Berichte helfen, indem sie relevante Informationen aus verschiedenen Projektquellen extrahieren und zusammenfassen.' },
-            { title: 'Kontinuierliches Lernen', description: 'Das System soll kontinuierlich mit neuen Projektdaten trainiert werden, um seine Leistung und Relevanz stetig zu verbessern.' }
-          ],
-          techStack: [
-            { title: 'Frontend', description: 'Vue.js mit Vuetify für eine reaktive und benutzerfreundliche Oberfläche' },
-            { title: 'Backend', description: 'Node.js mit Express.js für eine skalierbare Serverarchitektur' },
-            { title: 'Datenbank', description: 'MongoDB für flexible Datenspeicherung und -abfrage' },
-            { title: 'KI-Integration', description: 'Python-basierte Microservices für die Integration von LLMs und anderen KI-Funktionen' },
-            { title: 'API-Schnittstellen', description: 'RESTful APIs für die Kommunikation zwischen Frontend, Backend und KI-Services' }
-          ],
-          thirdPartyTools: [
-            { name: 'OpenAI GPT-3', purpose: 'Leistungsstarkes LLM für natürliche Sprachverarbeitung und Textgenerierung' },
-            { name: 'Jira', purpose: 'Aufgabenverwaltung und Projektverfolgung' },
-            { name: 'Slack', purpose: 'Team-Kommunikation und Integration von Benachrichtigungen' },
-            { name: 'GitHub', purpose: 'Versionskontrolle und kollaborative Softwareentwicklung' },
-            { name: 'Google Cloud Platform', purpose: 'Hosting, Skalierung und Datenspeicherung' }
-          ],
-          dashboardAreas: [
-            {
-              title: 'Projektübersicht',
-              description: 'Dieser Bereich soll einen schnellen Überblick über den aktuellen Projektstatus bieten.',
-              features: [
-                'Fortschrittsanzeigen für abgeschlossene Aufgaben',
-                'Anzeige der verbleibenden Zeit bis zur nächsten Deadline',
-                'Aktuelle Budgetauslastung',
-                'Teamauslastung'
-              ]
-            },
-            {
-              title: 'Aufgaben und Fortschritt',
-              description: 'Hier sollen alle aktuellen Aufgaben und deren Status angezeigt werden.',
-              features: [
-                'Liste aller Aufgaben mit Zuständigkeiten',
-                'Statusanzeige für jede Aufgabe',
-                'Möglichkeit zur Priorisierung von Aufgaben',
-                'Integration mit Jira für detailliertes Aufgabenmanagement'
-              ]
-            },
-            {
-              title: 'KI-Assistent',
-              description: 'Ein intelligenter Assistent, der bei verschiedenen Aspekten des Projektmanagements unterstützen soll.',
-              features: [
-                'Natürlichsprachliche Interaktion für Projektanfragen',
-                'Automatische Analyse von Projektdaten',
-                'Generierung von Empfehlungen und Vorhersagen',
-                'Unterstützung bei der Entscheidungsfindung'
-              ]
-            },
-            {
-              title: 'Projekt-Tagebuch',
-              description: 'Ein Bereich für tägliche Notizen und Reflexionen zum Projektfortschritt.',
-              features: [
-                'Tägliche Einträge mit Datum und Tags',
-                'Möglichkeit zur Kategorisierung von Einträgen',
-                'Automatische Analyse der Einträge durch den KI-Assistenten',
-                'Verknüpfung mit Projektzielen und Meilensteinen'
-              ]
-            },
-            {
-              title: 'Interner Projekt-Chat',
-              description: 'Ein integriertes Kommunikationstool für das Projektteam.',
-              features: [
-                'Verschiedene Chaträume für unterschiedliche Projektbereiche',
-                'Direktnachrichten zwischen Teammitgliedern',
-                'Integration von Benachrichtigungen aus anderen Tools',
-                'Archivierung und Durchsuchbarkeit von Chatverlaufen'
-              ]
-            },
-            {
-              title: 'Finanzplanung',
-              description: 'Übersicht über die finanzielle Situation des Projekts.',
-              features: [
-                'Aktueller Budgetstatus',
-                'Aufschlüsselung der Ausgaben nach Kategorien',
-                'Prognosen für zukünftige Ausgaben',
-                'Warnungen bei drohenden Budgetüberschreitungen'
-              ]
-            }
-          ]
-        };
+          type: '',
+          time: ''
+        },
+        eventTypes: [
+          'Meeting',
+          'Deadline',
+          'Review',
+          'Workshop',
+          'Sonstiges'
+        ],
+        calendarEvents: [
+          { date: '2025-02-20', title: 'Sprint Planning', type: 'Meeting', time: '10:00' },
+          { date: '2025-02-22', title: 'Design Review', type: 'Review', time: '14:00' },
+          { date: '2025-02-25', title: 'Stakeholder Meeting', type: 'Meeting', time: '15:30' }
+        ]
+      };
+    },
+    
+    computed: {
+      selectedDateEvents() {
+        return this.calendarEvents.filter(event => event.date === this.selectedDate);
       },
-      methods: {
-        getStatusColor(status) {
-          switch(status) {
-            case 'Abgeschlossen': return 'green';
-            case 'In Bearbeitung': return 'orange';
-            case 'Geplant': return 'blue';
-            default: return 'grey';
-          }
-        },
-        sendToAI() {
-          if (this.aiInput.trim() !== '') {
-            this.aiMessages.push({ sender: 'Benutzer', content: this.aiInput, time: 'Jetzt' });
-            // Hier würde normalerweise die Anfrage an den KI-Service gesendet
-            setTimeout(() => {
-              this.aiMessages.push({ sender: 'KI', content: 'Ich habe Ihre Anfrage verstanden und arbeite daran.', time: 'Jetzt' });
-            }, 1000);
-            this.aiInput = '';
-          }
-        },
-        saveDiaryEntry() {
-          // Hier würde der Tagebucheintrag gespeichert und an den KI-Service gesendet werden
-          console.log('Tagebucheintrag gespeichert:', {
-            date: this.date,
-            entry: this.diaryEntry,
-            tags: this.selectedTags
-          });
-          // Zurücksetzen der Eingabefelder
-          this.diaryEntry = '';
-          this.selectedTags = [];
-        },
-        sendChatMessage() {
-          if (this.chatInput.trim() !== '') {
-            this.chatMessages.push({
-              sender: this.currentUser,
-              content: this.chatInput,
-              time: 'Jetzt',
-              room: this.selectedChatRoom
-            });
-            // Hier würde die Nachricht an den Chat-Service gesendet werden
-            this.chatInput = '';
-          }
-        },
-        methods: {
-  async fetchProjects() {
-    try {
-      const response = await fetch('http://localhost:3000/projects');
-      this.projects = await response.json();
-    } catch (error) {
-      console.error('Fehler beim Abrufen der Projekte:', error);
-    }
-  },
-}
+      
+      upcomingEvents() {
+        const today = new Date();
+        return this.calendarEvents
+          .filter(event => new Date(event.date) >= today)
+          .sort((a, b) => new Date(a.date) - new Date(b.date))
+          .slice(0, 5);
       }
-    });
-  </script>
+    },
+  
+    methods: {
+      getStatusColor(status) {
+        switch(status) {
+          case 'Abgeschlossen': return 'green';
+          case 'In Bearbeitung': return 'orange';
+          case 'Geplant': return 'blue';
+          default: return 'grey';
+        }
+      },
+  
+      sendToAI() {
+        if (this.aiInput.trim() !== '') {
+          this.aiMessages.push({ sender: 'Benutzer', content: this.aiInput, time: 'Jetzt' });
+          setTimeout(() => {
+            this.aiMessages.push({ sender: 'KI', content: 'Ich habe Ihre Anfrage verstanden und arbeite daran.', time: 'Jetzt' });
+          }, 1000);
+          this.aiInput = '';
+        }
+      },
+  
+      saveDiaryEntry() {
+        console.log('Tagebucheintrag gespeichert:', {
+          date: this.date,
+          entry: this.diaryEntry,
+          tags: this.selectedTags
+        });
+        this.diaryEntry = '';
+        this.selectedTags = [];
+      },
+  
+      sendChatMessage() {
+        if (this.chatInput.trim() !== '') {
+          this.chatMessages.push({
+            sender: this.currentUser,
+            content: this.chatInput,
+            time: 'Jetzt',
+            room: this.selectedChatRoom
+          });
+          this.chatInput = '';
+        }
+      },
+  
+      formatDate(date) {
+        if (!date) return '';
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(date).toLocaleDateString('de-DE', options);
+      },
+  
+      getEventTypeColor(type) {
+        const colors = {
+          'Meeting': 'blue',
+          'Deadline': 'red',
+          'Review': 'orange',
+          'Workshop': 'green',
+          'Sonstiges': 'grey'
+        };
+        return colors[type] || 'grey';
+      },
+  
+      handleDateClick(date) {
+        this.selectedDate = date;
+      },
+  
+      addNewEvent() {
+        if (this.newEvent.title && this.newEvent.date) {
+          this.calendarEvents.push({
+            ...this.newEvent
+          });
+          
+          this.newEvent = {
+            title: '',
+            date: new Date().toISOString().substr(0, 10),
+            type: '',
+            time: ''
+          };
+          this.showAddEventDialog = false;
+        }
+      },
+  
+      async fetchProjects() {
+        try {
+          const response = await fetch('http://localhost:3000/projects');
+          this.projects = await response.json();
+        } catch (error) {
+          console.error('Fehler beim Abrufen der Projekte:', error);
+        }
+      }
+    }
+  });
+</script>
 </body>
 </html>
 
